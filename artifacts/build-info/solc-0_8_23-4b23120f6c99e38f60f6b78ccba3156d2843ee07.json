@@ -1,0 +1,47 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_23-4b23120f6c99e38f60f6b78ccba3156d2843ee07",
+  "solcVersion": "0.8.23",
+  "solcLongVersion": "0.8.23+commit.f704f362",
+  "userSourceNameMap": {
+    "src/contracts/DualRole.sol": "project/src/contracts/DualRole.sol",
+    "src/contracts/Ipcm.sol": "project/src/contracts/Ipcm.sol",
+    "src/contracts/Jobs.sol": "project/src/contracts/Jobs.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "shanghai",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/src/contracts/DualRole.sol": {
+        "content": "// contract address : 0xc8e17B92E580efBdb0f52772D00aC9DbcB2d0ae6\r\n// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.23;\r\n\r\ncontract Web3WorkProfiles {\r\n    // Track both profile types\r\n    mapping(address => string) private _freelancerCIDs; // Individual freelancer profile\r\n    mapping(address => string) private _clientCIDs; // Company/client profile\r\n    mapping(address => address) private _profileOwners;\r\n\r\n    // Add profile type to event\r\n    enum ProfileType {\r\n        Freelancer,\r\n        Client\r\n    }\r\n    event ProfileUpdated(\r\n        address indexed user,\r\n        ProfileType profileType,\r\n        string cid,\r\n        uint256 timestamp\r\n    );\r\n\r\n    // Update specific profile type\r\n    function updateFreelancerProfileCID(string calldata cid) external {\r\n        _freelancerCIDs[msg.sender] = cid;\r\n        _profileOwners[msg.sender] = msg.sender;\r\n        emit ProfileUpdated(\r\n            msg.sender,\r\n            ProfileType.Freelancer,\r\n            cid,\r\n            block.timestamp\r\n        );\r\n    }\r\n\r\n    function updateClientProfileCID(string calldata cid) external {\r\n        _clientCIDs[msg.sender] = cid;\r\n        _profileOwners[msg.sender] = msg.sender;\r\n        emit ProfileUpdated(\r\n            msg.sender,\r\n            ProfileType.Client,\r\n            cid,\r\n            block.timestamp\r\n        );\r\n    }\r\n\r\n    // Get specific profile type\r\n    function getFreelancerCID(\r\n        address user\r\n    ) external view returns (string memory) {\r\n        require(_profileOwners[user] == user, \"Profile not registered\");\r\n        return _freelancerCIDs[user];\r\n    }\r\n\r\n    function getClientCID(address user) external view returns (string memory) {\r\n        require(_profileOwners[user] == user, \"Profile not registered\");\r\n        return _clientCIDs[user];\r\n    }\r\n\r\n    // Transfer both profile types\r\n    function transferProfileOwnership(address newOwner) external {\r\n        require(_profileOwners[msg.sender] == msg.sender, \"Not profile owner\");\r\n\r\n        // Transfer both CIDs\r\n        _freelancerCIDs[newOwner] = _freelancerCIDs[msg.sender];\r\n        _clientCIDs[newOwner] = _clientCIDs[msg.sender];\r\n\r\n        // Clear old data\r\n        delete _freelancerCIDs[msg.sender];\r\n        delete _clientCIDs[msg.sender];\r\n\r\n        _profileOwners[newOwner] = newOwner;\r\n        _profileOwners[msg.sender] = address(0);\r\n    }\r\n}\r\n"
+      },
+      "project/src/contracts/Ipcm.sol": {
+        "content": "// Contract address: 0xbC51f02232164396a7a9167878c8463EbC7de0D4\r\n// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.23;\r\n\r\ncontract Web3WorkProfiles {\r\n    // Maps user addresses to their latest profile CID\r\n    mapping(address => string) private _profileCIDs;\r\n\r\n    // Tracks ownership of profile CIDs\r\n    mapping(address => address) private _profileOwners;\r\n\r\n    // Emitted when a profile CID is updated\r\n    event ProfileUpdated(address indexed user, string cid, uint256 timestamp);\r\n\r\n    // Update caller's profile CID (IPCM core functionality)\r\n    function updateProfileCID(string calldata cid) external {\r\n        _profileCIDs[msg.sender] = cid;\r\n        _profileOwners[msg.sender] = msg.sender; // Track ownership\r\n        emit ProfileUpdated(msg.sender, cid, block.timestamp);\r\n    }\r\n\r\n    // Get latest CID for any address (IPCM-style access)\r\n    function getProfileCID(address user) external view returns (string memory) {\r\n        require(_profileOwners[user] == user, \"Profile not registered\");\r\n        return _profileCIDs[user];\r\n    }\r\n\r\n    // Optional: Transfer profile ownership\r\n    function transferProfileOwnership(address newOwner) external {\r\n        require(_profileOwners[msg.sender] == msg.sender, \"Not profile owner\");\r\n        _profileOwners[newOwner] = newOwner;\r\n        _profileOwners[msg.sender] = address(0);\r\n    }\r\n}\r\n"
+      },
+      "project/src/contracts/Jobs.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.23;\r\n\r\ncontract Web3WorkJobs {\r\n    struct Job {\r\n        address poster;\r\n        string cid;\r\n        uint256 timestamp;\r\n        bool active;\r\n    }\r\n\r\n    mapping(uint256 => Job) public jobs;\r\n    uint256 public jobCount;\r\n\r\n    event JobPosted(uint256 indexed jobId, string cid);\r\n    event JobClosed(uint256 indexed jobId);\r\n\r\n    function postJob(string calldata cid) external {\r\n        jobs[jobCount] = Job(msg.sender, cid, block.timestamp, true);\r\n        emit JobPosted(jobCount, cid);\r\n        jobCount++;\r\n    }\r\n\r\n    function closeJob(uint256 jobId) external {\r\n        require(jobs[jobId].poster == msg.sender, \"Not job poster\");\r\n        jobs[jobId].active = false;\r\n        emit JobClosed(jobId);\r\n    }\r\n\r\n    function getActiveJobs() external view returns (string[] memory) {\r\n        string[] memory activeJobs = new string[](jobCount);\r\n        uint256 count = 0;\r\n\r\n        for (uint256 i = 0; i < jobCount; i++) {\r\n            if (jobs[i].active) {\r\n                activeJobs[count] = jobs[i].cid;\r\n                count++;\r\n            }\r\n        }\r\n\r\n        // Resize array to remove empty elements\r\n        string[] memory result = new string[](count);\r\n        for (uint256 i = 0; i < count; i++) {\r\n            result[i] = activeJobs[i];\r\n        }\r\n        return result;\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}
