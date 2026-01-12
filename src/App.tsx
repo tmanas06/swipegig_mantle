@@ -17,6 +17,7 @@ import { ProfileProvider } from './contexts/ProfileContext';
 import RegistrationPage from "./pages/RegistrationPage";
 import PublicProfile from "./pages/publicProfile";
 import PaymentsPage from "./pages/PaymentsPage";
+import Talent from "./pages/Talent";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -35,9 +36,10 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/profile" element={<MyProfile />} />
             <Route path="/settings" element={<Settings />} />
-<Route path="/register" element={<RegistrationPage />} />
-<Route path="/public-profile/:cid" element={<PublicProfile />} />
+            <Route path="/register" element={<RegistrationPage />} />
+            <Route path="/public-profile/:cid" element={<PublicProfile />} />
             <Route path="/pay" element={<PaymentsPage />} />
+            <Route path="/talent" element={<Talent />} />
 
             {/* Add more routes as needed */}
             {/* Catch-all route for 404 */}
