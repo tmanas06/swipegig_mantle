@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,11 +46,41 @@ const PostJob = () => {
   const [aiMarkdown, setAiMarkdown] = useState<string>("");
 
   const navigate = useNavigate();
-  const { account } = useWallet();
+  const { account, networkId, connectWallet } = useWallet();
   const { profile } = useProfile();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAIAssisted, setIsAIAssisted] = useState(true);
   const [skill, setSkill] = useState<string>('');
+  const MANTLE_SEPOLIA_CHAIN_ID = 5003;
+  
+  // Check network on component mount and when networkId changes
+  useEffect(() => {
+    if (account && networkId !== MANTLE_SEPOLIA_CHAIN_ID && window.ethereum) {
+      // Automatically switch to Mantle Sepolia
+      window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x138b' }], // 5003 in hex
+      }).catch((error: any) => {
+        if (error.code === 4902) {
+          // Chain not added, add it
+          window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x138b',
+              chainName: 'Mantle Sepolia',
+              rpcUrls: ['https://rpc.sepolia.mantle.xyz'],
+              nativeCurrency: {
+                name: 'Mantle',
+                symbol: 'MNT',
+                decimals: 18
+              },
+              blockExplorerUrls: ['https://explorer.sepolia.mantle.xyz']
+            }],
+          });
+        }
+      });
+    }
+  }, [account, networkId]);
   // Add new state
 const [companyLogoFile, setCompanyLogoFile] = useState<File | null>(null);
 const [logoPreview, setLogoPreview] = useState<string>('');
@@ -108,6 +138,50 @@ const [logoPreview, setLogoPreview] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if wallet is connected
+    if (!account) {
+      toast.error('Please connect your wallet first');
+      connectWallet();
+      return;
+    }
+    
+    // Check if on correct network
+    if (networkId !== MANTLE_SEPOLIA_CHAIN_ID) {
+      toast.error('Please switch to Mantle Sepolia Testnet to post jobs');
+      // Try to switch network
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x138b' }],
+          });
+        } catch (error: any) {
+          if (error.code === 4902) {
+            // Chain not added, add it
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x138b',
+                chainName: 'Mantle Sepolia',
+                rpcUrls: ['https://rpc.sepolia.mantle.xyz'],
+                nativeCurrency: {
+                  name: 'Mantle',
+                  symbol: 'MNT',
+                  decimals: 18
+                },
+                blockExplorerUrls: ['https://explorer.sepolia.mantle.xyz']
+              }],
+            });
+          } else {
+            toast.error('Failed to switch network. Please switch to Mantle Sepolia manually.');
+            return;
+          }
+        }
+      }
+      return;
+    }
+    
     try {
       let companyLogoCID = profile.profilePic; // Default to profile pic
     
