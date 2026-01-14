@@ -77,6 +77,13 @@ const Jobs = () => {
       // Get active job CIDs
       const cids: string[] = await contract.getActiveJobs();
       console.log('Fetched CIDs:', cids);
+      
+      if (!cids || cids.length === 0) {
+        console.log('No jobs found in contract');
+        setJobs([]);
+        setLoading(false);
+        return;
+      }
 
       // Fetch job data from IPFS
       const jobsData = await Promise.all(
@@ -110,10 +117,13 @@ const Jobs = () => {
       setJobs(validJobs);
       setCurrentIndex(0); // Reset swipe position on refresh
       setLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading jobs:', error);
-      toast.error('Failed to load jobs');
+      const errorMessage = error?.message || 'Failed to load jobs';
+      toast.error(`Error: ${errorMessage}`);
       setLoading(false);
+      // Set empty jobs array on error so UI shows "No jobs available"
+      setJobs([]);
     }
   };
   useEffect(() => {
@@ -180,6 +190,9 @@ const Jobs = () => {
    ) :  jobs.length === 0 ? (
     <div className="h-full flex flex-col items-center justify-center p-6 text-center">
       <h3 className="text-xl font-semibold mb-2">No jobs available</h3>
+      <p className="text-gray-600 mb-4 text-sm">
+        There are currently no active job postings. Check back later or post a job if you're a client.
+      </p>
       <Button 
         onClick={loadJobs}
         className="bg-web3-primary hover:bg-web3-secondary text-white"
