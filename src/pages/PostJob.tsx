@@ -51,6 +51,7 @@ const PostJob = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAIAssisted, setIsAIAssisted] = useState(true);
   const [skill, setSkill] = useState<string>('');
+  const [isPosting, setIsPosting] = useState(false);
   const MANTLE_SEPOLIA_CHAIN_ID = 5003;
   
   // Check network on component mount and when networkId changes
@@ -219,24 +220,61 @@ const [logoPreview, setLogoPreview] = useState<string>('');
       };
       
       const cid = await uploadJSONToIPFS(jobData);
+      toast.info('Job data uploaded to IPFS. Submitting transaction...');
+      
+      setIsPosting(true);
       
       // 2. Interact with contract
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
+      
+      // Verify contract address
+      if (!CONTRACT_ADDRESS) {
+        throw new Error('Contract address not configured. Please check your environment variables.');
+      }
+      
       const contract = new ethers.Contract(
         CONTRACT_ADDRESS.toLowerCase(),
         Web3WorkJobsABI,
         signer
       );
   
-      const tx = await contract.postJob(cid);
-      await tx.wait();
+      // Estimate gas first
+      try {
+        const gasEstimate = await contract.postJob.estimateGas(cid);
+        console.log('Gas estimate:', gasEstimate.toString());
+      } catch (gasError: any) {
+        console.error('Gas estimation failed:', gasError);
+        throw new Error(`Transaction will fail: ${gasError.reason || gasError.message}`);
+      }
   
-      toast.success('Job posted successfully!');
+      // Send transaction
+      toast.info('Please confirm the transaction in MetaMask...');
+      const tx = await contract.postJob(cid);
+      console.log('Transaction sent:', tx.hash);
+      toast.info(`Transaction submitted: ${tx.hash.substring(0, 10)}...`);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt);
+  
+      toast.success(`Job posted successfully! Transaction: ${tx.hash.substring(0, 10)}...`);
       navigate('/jobs');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Job post failed:', error);
-      toast.error('Failed to post job');
+      let errorMessage = 'Failed to post job';
+      
+      if (error?.code === 'ACTION_REJECTED' || error?.code === 4001) {
+        errorMessage = 'Transaction rejected by user';
+      } else if (error?.reason) {
+        errorMessage = `Transaction failed: ${error.reason}`;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -651,9 +689,10 @@ if (skillsMatch) {
               <div className="pt-4 border-t">
                 <Button 
                   type="submit" 
-                  className="w-full bg-web3-primary hover:bg-web3-secondary text-white"
+                  disabled={isPosting || networkId !== MANTLE_SEPOLIA_CHAIN_ID}
+                  className="w-full bg-web3-primary hover:bg-web3-secondary text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Job & Generate Smart Contract
+                  {isPosting ? 'Posting Job...' : 'Create Job & Generate Smart Contract'}
                 </Button>
               </div>
             </form>
