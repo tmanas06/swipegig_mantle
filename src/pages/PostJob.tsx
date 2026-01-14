@@ -343,6 +343,21 @@ if (skillsMatch) {
             <p className="text-gray-600">
               Create a smart contract job posting to find the perfect talent
             </p>
+            {account && (
+              <div className="mt-4">
+                {networkId === MANTLE_SEPOLIA_CHAIN_ID ? (
+                  <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Connected to Mantle Sepolia Testnet
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                    <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                    Wrong Network - Please switch to Mantle Sepolia Testnet
+                  </div>
+                )}
+              </div>
+            )}
           </header>
 
           {/* Public profile info */}
