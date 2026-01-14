@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import Web3WorkJobsABI from '../contracts/JobsAbi.json';
 import { convertIPFSURL } from '@/utils/ipfs';
-import { set } from 'date-fns';
+import { useWallet } from '@/context/WalletContext';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_JOBS_CONTRACT_ADDRESS;
 
@@ -42,6 +42,7 @@ export interface JobPost {
 }
 
 const Jobs = () => {
+  const { account, connectWallet } = useWallet();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [matchDialogOpen, setMatchDialogOpen] = useState<boolean>(false);
@@ -60,6 +61,12 @@ const Jobs = () => {
     console.log('Starting job load...');
     setLoading(true);
     try {
+      if (!window.ethereum) {
+        toast.error('Please install MetaMask to view jobs');
+        setLoading(false);
+        return;
+      }
+      
       const provider = new ethers.BrowserProvider(window.ethereum);
       const contract = new ethers.Contract(
         CONTRACT_ADDRESS.toLowerCase(),
@@ -150,6 +157,18 @@ const Jobs = () => {
             Swipe right to accept jobs, left to skip, or tap negotiate to customize terms.
           </p>
         </header>
+        {!account ? (
+          <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+            <h3 className="text-xl font-semibold mb-4">Connect Your Wallet</h3>
+            <p className="text-gray-600 mb-6">Please connect your wallet to view available jobs.</p>
+            <Button 
+              onClick={connectWallet}
+              className="bg-web3-primary hover:bg-web3-secondary text-white"
+            >
+              Connect Wallet
+            </Button>
+          </div>
+        ) : (
         <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
           {/* Swipable cards container */}
           <div className="swipe-container">
@@ -194,6 +213,7 @@ const Jobs = () => {
 </div>
 
           {/* Swipe controls */}
+          {account && jobs.length > 0 && (
           <div className="p-4 flex justify-center gap-8">
             <Button
               size="icon"
@@ -226,7 +246,9 @@ const Jobs = () => {
               </svg>
             </Button>
           </div>
+          )}
         </div>
+        )}
       </div>
 
       {/* Match Dialog */}
